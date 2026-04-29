@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gen 3 Unfilmed Tube Simulator</title>
+    <style>
+        :root {
+            --l3-red: #ED1C24;    
+            --bg-black: #050505;  
+            --panel-dark: #111111;
+            --text-main: #E0E0E0;
+            --text-dim: #888888;
+            --border-color: #333333;
+            --p43-green: #39FF14; 
+            --p45-white: #E0F7FA; 
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-black);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            width: 100%;
+            background-color: #000000;
+            border-bottom: 2px solid var(--l3-red);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 50px;
+            box-sizing: border-box;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-text {
+            font-weight: 900;
+            font-size: 1.5em;
+            letter-spacing: 2px;
+            color: #FFFFFF;
+        }
+
+        .logo-red {
+            color: var(--l3-red);
+        }
+
+        .tagline {
+            color: var(--text-dim);
+            font-weight: 700;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h1 {
+            color: #FFFFFF;
+            margin: 30px 0 5px 0;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 1.05em;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-black);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 30px rgba(237, 28, 36, 0.15); 
+            max-width: 1100px; /* EXPANDED WIDTH */
+            width: 100%;
+        }
+
+        canvas {
+            background: #0A0A0A;
+            border-bottom: 1px solid var(--border-color);
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            background: var(--panel-dark);
+            padding: 25px;
+            gap: 30px;
+        }
+
+        .control-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-right: 1px solid var(--border-color);
+            padding-right: 30px;
+        }
+        
+        .control-group:last-child {
+            border-right: none;
+            padding-right: 0;
+            flex: 1.5; 
+        }
+
+        label {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--l3-red);
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #333;
+            border-radius: 2px;
+        }
+
+        .btn-toggle {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid #555;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .btn-toggle.active {
+            background-color: var(--l3-red);
+            border-color: var(--l3-red);
+            color: #FFF;
+        }
+
+        .btn-toggle.active-white {
+            background-color: var(--p45-white);
+            border-color: var(--p45-white);
+            color: #000;
+        }
+
+        .btn-toggle.active-green {
+            background-color: var(--p43-green);
+            border-color: var(--p43-green);
+            color: #000;
+        }
+
+        .info-panel {
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #CCC;
+        }
+
+        .info-title {
+            color: var(--l3-red);
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .stat-readout {
+            display: flex;
+            justify-content: space-between;
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            font-family: 'Courier New', Courier, monospace;
+            margin-top: 15px;
+        }
+        
+        .stat-value {
+            color: var(--l3-red);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-text">Gen 3 Unfilmed (High-Performance)<span class="logo-red">™</span></div>
+        </div>
+        <div class="tagline">Advanced Electro-Optical Systems</div>
+    </header>
+
+    <h1>Image Intensifier Physics</h1>
+    <div class="subtitle">Interactive simulation of a Gen 3 Unfilmed Vacuum Tube.</div>
+    
+    <div class="container">
+        <canvas id="tubeCanvas" width="1100" height="350"></canvas>
+
+        <div class="controls">
+            
+            <div class="control-group">
+                <label>Ambient Photons (Light Level)</label>
+                <input type="range" id="lightSlider" min="1" max="20" value="5">
+                
+                <label style="margin-top: 10px;">Tube Architecture</label>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btnFilmed" class="btn-toggle">Thin-Film</button>
+                    <button id="btnUnfilmed" class="btn-toggle active">Unfilmed</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Phosphor Screen Type</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button id="btnP43" class="btn-toggle">P43 Green</button>
+                    <button id="btnP45" class="btn-toggle active-white">P45 White</button>
+                </div>
+                
+                <div class="stat-readout">
+                    <span>Signal-to-Noise Ratio (SNR):</span>
+                    <span id="snrValue" class="stat-value">HIGH</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="info-title" id="infoTitle">Unfilmed Clear-scape</div>
+                <div class="info-panel" id="infoText">
+                    Photons strike the GaAs photocathode, ejecting photoelectrons. Because the Ion Barrier Film is removed, 100% of the electrons enter the Microchannel Plate (MCP), resulting in extreme clarity and a pristine Signal-to-Noise Ratio.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tubeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const lightSlider = document.getElementById('lightSlider');
+        const btnFilmed = document.getElementById('btnFilmed');
+        const btnUnfilmed = document.getElementById('btnUnfilmed');
+        const btnP43 = document.getElementById('btnP43');
+        const btnP45 = document.getElementById('btnP45');
+        
+        const infoTitle = document.getElementById('infoTitle');
+        const infoText = document.getElementById('infoText');
+        const snrValue = document.getElementById('snrValue');
+
+        let isUnfilmed = true;
+        let isWhitePhosphor = true;
+        let photonRate = 5;
+        let phosphorGlowIntensity = 0;
+
+        const X_START = 0;
+        const X_CATHODE = 200;
+        const X_FILM = 480;
+        const X_MCP_IN = 500;
+        const X_MCP_OUT = 650;
+        const X_PHOSPHOR = 900;
+
+        const COLOR_PHOTON = "rgba(255, 255, 150, 0.6)"; 
+        const COLOR_ELECTRON = "rgba(0, 191, 255, 0.9)";  
+        const COLOR_P43 = "rgba(57, 255, 20, 1)";
+        const COLOR_P45 = "rgba(224, 247, 250, 1)";
+
+        let particles = [];
+
+        class Particle {
+            constructor(type, x, y) {
+                this.type = type; 
+                this.x = x;
+                this.y = y;
+                this.active = true;
+                this.wobble = Math.random() * Math.PI * 2;
+                
+                if (type === 'photon') {
+                    this.speed = 3 + Math.random();
+                    this.size = 1.5;
+                } else if (type === 'electron') {
+                    this.speed = 8;
+                    this.size = 2;
+                } else if (type === 'avalanche') {
+                    this.speed = 10 + Math.random() * 4;
+                    this.size = 1;
+                    this.vy = (Math.random() - 0.5) * 2; 
+                }
+            }
+
+            update() {
+                if (!this.active) return;
+
+                this.x += this.speed;
+                if (this.type === 'photon') {
+                    this.wobble += 0.2;
+                    this.y += Math.sin(this.wobble) * 1.5; 
+                } else if (this.type === 'avalanche') {
+                    this.y += this.vy;
+                }
+
+                if (this.type === 'photon' && this.x >= X_CATHODE) {
+                    this.active = false;
+                    if (Math.random() > 0.3) {
+                        particles.push(new Particle('electron', X_CATHODE, this.y));
+                    }
+                }
+
+                if (this.type === 'electron' && this.x >= X_FILM && this.x < X_MCP_IN) {
+                    if (!isUnfilmed) {
+                        if (Math.random() < 0.4) {
+                            this.active = false; 
+                        }
+                    }
+                }
+
+                if (this.type === 'electron' && this.x >= X_MCP_IN) {
+                    this.active = false;
+                    let cascadeMultiplier = isUnfilmed ? 15 : 10; 
+                    for (let i = 0; i < cascadeMultiplier; i++) {
+                        particles.push(new Particle('avalanche', X_MCP_OUT, this.y + (Math.random()-0.5)*10));
+                    }
+                }
+
+                if (this.type === 'avalanche' && this.x >= X_PHOSPHOR) {
+                    this.active = false;
+                    phosphorGlowIntensity += 0.05; 
+                }
+
+                if (this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                
+                ctx.fillStyle = this.type === 'photon' ? COLOR_PHOTON : COLOR_ELECTRON;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (this.type === 'electron' || this.type === 'avalanche') {
+                    ctx.strokeStyle = "rgba(0, 191, 255, 0.3)";
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x - 10, this.y - (this.type === 'avalanche' ? this.vy * 2 : 0));
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawTubeHardware() {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+            ctx.fillRect(X_CATHODE - 20, 50, 20, 250);
+            ctx.strokeStyle = "#555";
+            ctx.strokeRect(X_CATHODE - 20, 50, 20, 250);
+            
+            ctx.fillStyle = "#ED1C24"; 
+            ctx.fillRect(X_CATHODE, 50, 4, 250);
+
+            if (!isUnfilmed) {
+                ctx.fillStyle = "rgba(200, 200, 200, 0.6)";
+                ctx.fillRect(X_FILM, 50, 2, 250);
+                
+                ctx.fillStyle = "rgba(200, 200, 200, 0.5)";
+                ctx.font = "10px Arial";
+                ctx.fillText("ALUMINUM FILM", X_FILM - 35, 40);
+            }
+
+            ctx.fillStyle = "#222";
+            ctx.fillRect(X_MCP_IN, 50, X_MCP_OUT - X_MCP_IN, 250);
+            ctx.strokeStyle = "#444";
+            ctx.strokeRect(X_MCP_IN, 50, X_MCP_OUT - X_MCP_IN, 250);
+            
+            ctx.strokeStyle = "#111";
+            ctx.lineWidth = 1;
+            for(let y = 55; y < 295; y += 8) {
+                ctx.beginPath();
+                ctx.moveTo(X_MCP_IN, y);
+                ctx.lineTo(X_MCP_OUT, y + 10);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "#111";
+            ctx.fillRect(X_PHOSPHOR, 50, 15, 250);
+            
+            phosphorGlowIntensity *= 0.92; 
+            if (phosphorGlowIntensity > 1) phosphorGlowIntensity = 1; 
+            
+            let pColor = isWhitePhosphor ? '224, 247, 250' : '57, 255, 20';
+            ctx.fillStyle = `rgba(${pColor}, ${phosphorGlowIntensity})`;
+            ctx.fillRect(X_PHOSPHOR, 50, 15, 250);
+
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = `rgba(${pColor}, ${phosphorGlowIntensity})`;
+            ctx.fillStyle = `rgba(${pColor}, ${phosphorGlowIntensity * 0.5})`;
+            ctx.fillRect(X_PHOSPHOR + 15, 50, 30, 250);
+            ctx.shadowBlur = 0; 
+
+            ctx.fillStyle = "#888";
+            ctx.font = "11px Helvetica";
+            
+            ctx.textAlign = "left";
+            ctx.fillText("OBJECTIVE", 20, 175);
+            ctx.fillText("PHOTONS", 80, 40);
+            
+            
+            // Adjusted alignment for clean spacing
+            ctx.textAlign = "center";
+            ctx.fillText("GaAs PHOTOCATHODE", X_CATHODE, 320);
+            ctx.fillText("MICROCHANNEL PLATE", (X_MCP_IN + X_MCP_OUT)/2, 320);
+            ctx.fillText(isWhitePhosphor ? "P45 WHITE PHOSPHOR" : "P43 GREEN PHOSPHOR", X_PHOSPHOR, 320);
+            ctx.fillText("ELECTRONS", 350, 40);
+            
+            ctx.textAlign = "right";
+            ctx.fillText("PHOTONS", 800, 40);
+
+            // Fixed Eyepiece text placement perfectly in the center of the right margin
+            ctx.fillText("EYEPIECE", X_PHOSPHOR + 130, 175);
+            
+            ctx.textAlign = "left"; // reset alignment
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < photonRate; i++) {
+                if (Math.random() > 0.5) {
+                    particles.push(new Particle('photon', X_START, 60 + Math.random() * 230));
+                }
+            }
+
+            drawTubeHardware();
+
+            particles = particles.filter(p => p.active);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function updateContent() {
+            if (isUnfilmed) {
+                infoTitle.innerText = "Unfilmed Clear-scape";
+                infoText.innerHTML = "Photons strike the GaAs photocathode, ejecting photoelectrons. Because the Ion Barrier Film is removed, <span class='stat-value'>100% of the electrons enter the Microchannel Plate (MCP)</span>, resulting in extreme clarity and a pristine Signal-to-Noise Ratio.";
+                snrValue.innerText = "HIGH (30+)";
+                snrValue.style.color = "var(--l3-red)";
+            } else {
+                infoTitle.innerText = "Thin-Film Blockage (Legacy)";
+                infoText.innerHTML = "A microscopic aluminum-oxide film is placed in front of the MCP to protect the cathode from ion poisoning. However, <span style='color:#888'>up to 40% of the vital photoelectrons bounce off this film</span>. This destroys low-light data and generates visual 'snow' (scintillation).";
+                snrValue.innerText = "MODERATE (20-25)";
+                snrValue.style.color = "#888";
+            }
+        }
+
+        lightSlider.addEventListener('input', (e) => {
+            photonRate = parseInt(e.target.value);
+        });
+
+        btnFilmed.addEventListener('click', () => {
+            isUnfilmed = false;
+            btnFilmed.classList.add('active');
+            btnUnfilmed.classList.remove('active');
+            updateContent();
+        });
+
+        btnUnfilmed.addEventListener('click', () => {
+            isUnfilmed = true;
+            btnUnfilmed.classList.add('active');
+            btnFilmed.classList.remove('active');
+            updateContent();
+        });
+
+        btnP43.addEventListener('click', () => {
+            isWhitePhosphor = false;
+            btnP43.classList.add('active-green');
+            btnP45.classList.remove('active-white');
+            updateContent();
+        });
+
+        btnP45.addEventListener('click', () => {
+            isWhitePhosphor = true;
+            btnP45.classList.add('active-white');
+            btnP43.classList.remove('active-green');
+            updateContent();
+        });
+
+        updateContent();
+        animate();
+    </script>
+</body>
+</html>

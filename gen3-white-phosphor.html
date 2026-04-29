@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPNVG-18: Gen 3 Unfilmed Tube</title>
+    <style>
+        :root {
+            --tac-dark: #0a0e12;
+            --tac-panel: #151a22;
+            --tac-border: #2a3441;
+            --tac-text: #8b9bb4;
+            --tac-accent: #4a90e2;
+            --wp-glow: #e0f2fe; /* P45 White Phosphor color */
+            --photon-color: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--tac-dark);
+            color: var(--tac-text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            width: 100%;
+            background-color: var(--tac-panel);
+            border-bottom: 2px solid var(--tac-border);
+            padding: 20px 50px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-size: 1.4em;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .brand span {
+            color: var(--tac-accent);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            background: var(--tac-panel);
+            border: 1px solid var(--tac-border);
+            border-radius: 6px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 1000px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        canvas {
+            background: #05070a;
+            border-bottom: 1px solid var(--tac-border);
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            padding: 25px;
+            gap: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--tac-accent);
+            cursor: pointer;
+        }
+
+        .toggle-btn {
+            background-color: transparent;
+            color: var(--tac-accent);
+            border: 2px solid var(--tac-accent);
+            padding: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .toggle-btn.active {
+            background-color: var(--tac-accent);
+            color: #fff;
+        }
+
+        .info-panel {
+            flex: 2;
+            background: #0d1117;
+            padding: 15px 20px;
+            border-radius: 4px;
+            border-left: 3px solid var(--tac-accent);
+            font-size: 0.95em;
+        }
+
+        .info-title {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .highlight { color: var(--wp-glow); font-weight: bold; }
+        .photon-text { color: var(--photon-color); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">GPNVG-18 <span>//</span> Gen 3 Unfilmed Architecture</div>
+        <div style="font-size: 0.85em; color: #666; letter-spacing: 1px;">ELECTRO-OPTICS SIMULATOR</div>
+    </header>
+
+    <div class="container">
+        <canvas id="nvgCanvas" width="1000" height="350"></canvas>
+
+        <div class="controls">
+            
+            <div class="control-group">
+                <label for="lightSlider">Ambient Light Level: <span id="lightVal">Low (Starlight)</span></label>
+                <input type="range" id="lightSlider" min="1" max="100" value="15">
+                
+                <label style="margin-top: 15px;">Microchannel Plate Type:</label>
+                <button id="filmToggle" class="toggle-btn active">Unfilmed (L3Harris)</button>
+            </div>
+
+            <div class="info-panel" id="infoPanel">
+                <div class="info-title">Quantum Physics Pipeline</div>
+                <div id="descText">
+                    <span class="photon-text">Photons</span> enter the objective lens and strike the GaAs Photocathode, converting into electrons. They are accelerated into the Microchannel Plate (MCP) where they multiply exponentially. Finally, they crash into the P45 White Phosphor screen, converting back into visible light for the operator. 
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('nvgCanvas');
+        const ctx = canvas.getContext('2d');
+        const lightSlider = document.getElementById('lightSlider');
+        const lightVal = document.getElementById('lightVal');
+        const filmToggle = document.getElementById('filmToggle');
+        const descText = document.getElementById('descText');
+
+        let isUnfilmed = true;
+        let particles = [];
+        
+        // Component X-coordinates
+        const zones = {
+            objective: 100,
+            photocathode: 250,
+            film: 440, // Where the barrier film would be
+            mcpIn: 450,
+            mcpOut: 600,
+            phosphor: 750,
+            eyepiece: 900
+        };
+
+        class Particle {
+            constructor(type, y) {
+                this.type = type; // 'photon_in', 'electron_single', 'electron_multi', 'photon_out'
+                this.y = y;
+                this.x = 0;
+                this.speed = 0;
+                this.active = true;
+                this.size = 1.5;
+                this.opacity = 1;
+
+                if (type === 'photon_in') {
+                    this.x = Math.random() * zones.objective;
+                    this.speed = 3 + Math.random() * 2;
+                    this.color = "#f59e0b"; // Amber/Near-IR
+                } else if (type === 'electron_multi') {
+                    this.x = zones.mcpIn + Math.random() * 20;
+                    this.speed = 6 + Math.random() * 3;
+                    this.color = "#a78bfa"; // High energy purple
+                    this.size = 1;
+                }
+            }
+
+            update() {
+                if (!this.active) return;
+                
+                this.x += this.speed;
+
+                // Photon hits Photocathode -> Turns into single electron
+                if (this.type === 'photon_in' && this.x >= zones.photocathode) {
+                    this.type = 'electron_single';
+                    this.color = "#60a5fa"; // Blue electron
+                    this.speed = 4;
+                }
+
+                // Single electron hits MCP
+                if (this.type === 'electron_single' && this.x >= zones.film) {
+                    // If FILMED tube, there's a 40% chance the electron gets blocked (data loss)
+                    if (!isUnfilmed && Math.random() < 0.4) {
+                        this.active = false; // Blocked by ion barrier film!
+                    }
+                }
+
+                // Electron enters MCP -> Triggers avalanche (handled in main loop for performance)
+                if (this.type === 'electron_single' && this.x >= zones.mcpIn && this.active) {
+                    this.active = false; // Destroy single, spawn multiples in main loop
+                }
+
+                // Avalanche electrons hit Phosphor screen
+                if (this.type === 'electron_multi' && this.x >= zones.phosphor) {
+                    this.type = 'photon_out';
+                    this.color = "#e0f2fe"; // P45 White Phosphor
+                    this.speed = 5;
+                    this.size = 2;
+                    
+                    // Scintillation (Noise) effect if Filmed and low light
+                    if (!isUnfilmed && Math.random() < 0.15) {
+                         this.opacity = 0.2; // Dim/noisy pixel
+                    }
+                }
+
+                if (this.x > canvas.width) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.opacity;
+                ctx.beginPath();
+                
+                if (this.type === 'photon_in' || this.type === 'photon_out') {
+                    // Draw light waves as little lines
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + 8, this.y);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                } else {
+                    // Draw electrons as dots
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function spawnPhotons() {
+            let lightLevel = parseInt(lightSlider.value);
+            // Spawn rate based on light slider
+            if (Math.random() * 100 < lightLevel) {
+                particles.push(new Particle('photon_in', 100 + Math.random() * 150));
+            }
+        }
+
+        function drawTubeStructure() {
+            // Background grid
+            ctx.strokeStyle = "#111827";
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            
+            const centerY = 175;
+
+            // Tube Casing Boundaries
+            ctx.strokeStyle = "#4b5563";
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 80); ctx.lineTo(canvas.width, 80); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 270); ctx.lineTo(canvas.width, 270); ctx.stroke();
+
+            // 1. Objective Lens
+            ctx.fillStyle = "rgba(255,255,255,0.05)";
+            ctx.strokeStyle = "#6b7280";
+            ctx.beginPath();
+            ctx.ellipse(zones.objective, centerY, 15, 80, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // 2. GaAs Photocathode
+            ctx.fillStyle = "#1e3a8a"; // Deep blue/GaAs look
+            ctx.fillRect(zones.photocathode, 90, 8, 170);
+            
+            // 3. Ion Barrier Film (Only draw if filmed)
+            if (!isUnfilmed) {
+                ctx.fillStyle = "rgba(255, 0, 0, 0.4)"; // Red warning color
+                ctx.fillRect(zones.film, 90, 4, 170);
+            }
+
+            // 4. Microchannel Plate (MCP)
+            ctx.fillStyle = "#374151";
+            ctx.fillRect(zones.mcpIn, 90, zones.mcpOut - zones.mcpIn, 170);
+            // MCP honeycomb lines
+            ctx.strokeStyle = "#1f2937";
+            ctx.lineWidth = 1;
+            for(let y=95; y<260; y+=8) {
+                ctx.beginPath(); ctx.moveTo(zones.mcpIn, y); ctx.lineTo(zones.mcpOut, y+5); ctx.stroke();
+            }
+
+            // 5. P45 Phosphor Screen
+            ctx.fillStyle = "#e0f2fe"; // WP glow
+            ctx.shadowColor = "#e0f2fe";
+            ctx.shadowBlur = parseInt(lightSlider.value) / 2; // Glows based on light level
+            ctx.fillRect(zones.phosphor, 90, 6, 170);
+            ctx.shadowBlur = 0; // reset
+
+            // 6. Eyepiece Lens
+            ctx.fillStyle = "rgba(255,255,255,0.05)";
+            ctx.strokeStyle = "#6b7280";
+            ctx.beginPath();
+            ctx.ellipse(zones.eyepiece, centerY, 15, 80, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // Technical Labels
+            ctx.fillStyle = "#9ca3af";
+            ctx.font = "bold 11px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("OBJECTIVE", zones.objective, 65);
+            ctx.fillText("GaAs PHOTOCATHODE", zones.photocathode, 65);
+            ctx.fillText("MICROCHANNEL PLATE", (zones.mcpIn + zones.mcpOut)/2, 65);
+            ctx.fillText("P45 PHOSPHOR", zones.phosphor, 65);
+            
+            // Fixed the EYEPIECE text so it doesn't get eaten!
+            ctx.textAlign = "right";
+            ctx.fillText("EYEPIECE", zones.eyepiece + 15, 65); 
+            ctx.textAlign = "center"; // reset
+
+            if (!isUnfilmed) {
+                ctx.fillStyle = "#ef4444";
+                ctx.fillText("ION BARRIER FILM", zones.film, 290);
+                ctx.font = "italic 10px sans-serif";
+                ctx.fillText("(Blocks up to 40% of Electrons)", zones.film, 305);
+            } else {
+                ctx.fillStyle = "#10b981";
+                ctx.fillText("UNFILMED / AUTO-GATED", zones.film, 290);
+                ctx.font = "italic 10px sans-serif";
+                ctx.fillText("(100% Electron Transmission)", zones.film, 305);
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawTubeStructure();
+            spawnPhotons();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw();
+
+                // Handle MCP avalanche spawning
+                if (p.type === 'electron_single' && p.x >= zones.mcpIn && !p.active) {
+                    // Multiply!
+                    let multiplier = 5 + Math.random() * 5;
+                    for(let j=0; j<multiplier; j++) {
+                        let newP = new Particle('electron_multi', p.y + (Math.random()-0.5)*15);
+                        // Angle them slightly to follow the MCP channels
+                        newP.y += (newP.x - zones.mcpIn) * 0.05; 
+                        particles.push(newP);
+                    }
+                }
+
+                // Cleanup dead particles
+                if (!p.active) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Cap array size to prevent browser lag if light level is cranked
+            if (particles.length > 2000) {
+                particles.splice(0, particles.length - 2000);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event Listeners
+        lightSlider.addEventListener('input', (e) => {
+            let val = e.target.value;
+            if (val < 25) lightVal.innerText = "Low (Starlight)";
+            else if (val < 60) lightVal.innerText = "Medium (Moonlight)";
+            else lightVal.innerText = "High (Urban Ambient)";
+        });
+
+        filmToggle.addEventListener('click', (e) => {
+            isUnfilmed = !isUnfilmed;
+            if (isUnfilmed) {
+                filmToggle.innerText = "Unfilmed (L3Harris)";
+                filmToggle.classList.add('active');
+                descText.innerHTML = "<strong>UNFILMED:</strong> With the ion-barrier film removed, 100% of the photoelectrons reach the MCP. This drastically increases the <span class='highlight'>Signal-to-Noise Ratio (SNR)</span>, providing unparalleled clarity in absolute darkness without visual static.";
+            } else {
+                filmToggle.innerText = "Thin-Film (Standard Gen 3)";
+                filmToggle.classList.remove('active');
+                descText.innerHTML = "<strong style='color:#ef4444'>THIN-FILM:</strong> A microscopic aluminum-oxide film protects the photocathode from ion poisoning. However, watch the red line—it acts as a tollbooth, destroying up to 40% of your incoming electrons. This lost data creates dark, grainy static (scintillation) in the final image.";
+            }
+        });
+
+        // Start
+        animate();
+    </script>
+
+</body>
+</html>
