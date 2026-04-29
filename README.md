@@ -60,3 +60,5 @@ The simulator accurately represents the four-stage amplification process:
 
 ## ⚖️ Disclaimer
 *This project is an unofficial educational tool created for physics visualization and learning purposes. It is not affiliated with any defense contractor or manufacturer. All concepts are based on publicly available electro-optics theory.*
+---
+Licensed under the MIT License Free for educational use.
